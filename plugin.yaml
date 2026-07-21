@@ -1,0 +1,5 @@
+name: superpowers
+version: 1.0.0
+description: "Superpowers canon (obra) for Hermes — always-on skill discipline via pre_llm_call steering. Content: upstream obra/superpowers with minimal Hermes tool-name conversion. Replaces the bespoke superpowers-mcp."
+hooks:
+  - pre_llm_call
