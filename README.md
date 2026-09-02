@@ -1,58 +1,93 @@
 # hermes-superpowers-plugin
 
-[obra/superpowers](https://github.com/obra/superpowers) as an **always-on Hermes plugin** — skill discipline you can't skip, because you never chose it.
+> An always-on Superpowers gate for Hermes Agent: procedural discipline is injected automatically instead of depending on the model to remember to request it.
 
-## Why this exists
+This project adapts [obra/superpowers](https://github.com/obra/superpowers) for [Hermes Agent](https://github.com/NousResearch/hermes-agent) while preserving the upstream skill content and adding the missing enforcement layer.
 
-Canon superpowers ships as a plugin for Claude Code, Codex, Kimi, and friends — but not for [Hermes Agent](https://github.com/NousResearch/hermes-agent). Community ports (notably [Labhund/hermes-superpowers](https://github.com/Labhund/hermes-superpowers)) converted the skill *content* but left the *gate layer* behind: on those installs, discipline is a tool the agent has to remember to pick up.
+## The problem it solves
 
-An MCP makes discipline **optional**. A plugin makes it **the default state**.
+A skill library only helps when the agent actually invokes it. Tool- or MCP-based skill access can still be skipped by a model that rushes into implementation, forgets the procedure, or decides the task is “too simple.”
 
-This repo is the missing gate layer, wrapped around canon content:
+This plugin moves the rule from an optional tool choice into Hermes' runtime:
 
-- **`pre_llm_call` hook** — first turn of every session injects the canonical using-superpowers rule (Hermes-adapted: `skill_view` as the invocation surface). Always on. No choosing.
-- **Canon skills** — 14 skills from `obra/superpowers`, converted with a *minimal* Hermes tool-name map and nothing else. No commentary, no local lore baked into skill bodies.
-- **Normal Hermes surface** — skills load via `skills.external_dirs`, so `skill_view("test-driven-development")` and `/test-driven-development` work exactly like native skills.
+- a `pre_llm_call` hook injects the Superpowers rule on the first turn of each session;
+- the canonical skills are loaded through Hermes' normal external-skills surface;
+- tool names are translated to Hermes-native equivalents with a minimal mapping;
+- later turns remain quiet so the plugin does not repeatedly bloat the context.
 
-## Install
+## What is original here
 
-```powershell
-# 1. Copy the plugin into your Hermes home
-cp -r hermes-superpowers-plugin "$env:HERMES_HOME\plugins\superpowers"
+- the Hermes plugin wrapper;
+- the first-turn gate implemented through `pre_llm_call`;
+- installation and `skills.external_dirs` wiring;
+- the Hermes tool-name compatibility map;
+- validation against a live Hermes profile.
 
-# 2. Register the skills surface (one line in config.yaml)
-#    skills:
-#      external_dirs:
-#        - "G:\\path\\to\\plugins\\superpowers\\skills"
+The underlying Superpowers skill content comes from `obra/superpowers` and retains its upstream MIT provenance.
 
-# 3. Enable the plugin
-hermes plugins enable superpowers
+## Tool-name mapping
 
-# 4. Restart your gateway/backend
-```
-
-## The tool-name conversion (all of it)
-
-| Canon says | Hermes native |
+| Canonical name | Hermes surface |
 |---|---|
-| `Task` tool | `delegate_task` |
+| `Task` | `delegate_task` |
 | `Read` | `read_file` |
 | `Write` | `write_file` |
 | `Edit` | `patch` |
 | `Bash` | `terminal` |
 | `TodoWrite` | `todo` |
-| `Skill` tool | `skill_view` |
+| `Skill` | `skill_view` |
 
-Everything else in the skill bodies is byte-identical to upstream canon. If a future upstream release changes content, re-copy `skills/` from a fresh clone and re-apply this table.
+The goal is compatibility, not a rewrite of the upstream methodology.
 
-## Verified
+## Install
 
-Built test-first on a live Hermes profile. The pre-ship checks: plugin registers, `pre_llm_call` hook fires, first turn injects steering, later turns stay silent, canon dir appears in `external_dirs`, `/test-driven-development` `/systematic-debugging` `/brainstorming` `/writing-plans` resolve as commands, zero collisions with built-in commands. **9/9 passing.**
+```powershell
+# Copy the plugin into the Hermes plugin directory
+cp -r hermes-superpowers-plugin "$env:HERMES_HOME\plugins\superpowers"
+```
+
+Add the skill directory to `config.yaml`:
+
+```yaml
+skills:
+  external_dirs:
+    - "G:\\path\\to\\plugins\\superpowers\\skills"
+```
+
+Enable the plugin and restart the Hermes gateway/backend:
+
+```powershell
+hermes plugins enable superpowers
+```
+
+## Verified behavior
+
+The documented pre-ship checks covered:
+
+1. plugin registration;
+2. `pre_llm_call` hook execution;
+3. first-turn rule injection;
+4. silence on later turns;
+5. canonical directory availability through `external_dirs`;
+6. `/test-driven-development` resolution;
+7. `/systematic-debugging` resolution;
+8. `/brainstorming` and `/writing-plans` resolution;
+9. no collisions with built-in commands.
+
+**Result: 9/9 checks passing** on the tested Hermes profile.
+
+## Portfolio notes
+
+This repository demonstrates agent-runtime integration rather than prompt writing alone: lifecycle hooks, context discipline, external skill loading, compatibility mapping, collision checks, and explicit behavioral verification.
+
+The plugin wrapper and validation workflow were built through an AI-assisted engineering process directed by **Willie Stewart / Phantom Horizon Studios**. That work included defining the enforcement requirement, separating upstream content from local integration code, directing implementation, reviewing behavior, and requiring named pre-ship checks.
 
 ## Provenance
 
-- Skill content: [obra/superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent) — see `LICENSE.upstream`
-- Tool-name conversion approach: independent, informed by [Labhund/hermes-superpowers](https://github.com/Labhund/hermes-superpowers)
-- Plugin wrapper + gates: this repo (MIT, grimmjoww / Phantom Horizon Studios)
+- Skill content: [obra/superpowers](https://github.com/obra/superpowers), MIT, Jesse Vincent
+- Compatibility inspiration: [Labhund/hermes-superpowers](https://github.com/Labhund/hermes-superpowers)
+- Hermes wrapper, gate, mapping, and verification: this repository
 
-Built with [Hermes Agent](https://github.com/NousResearch/hermes-agent).
+## License
+
+MIT. See `LICENSE.upstream` for upstream attribution.
